@@ -54,8 +54,8 @@ router.post('/typeform', async (req, res) => {
     console.error('Lead scoring failed:', scoreErr.message);
   }
 
-  // If Hot or Warm and phone exists, place outbound call
-  if ((scoring.tier === 'Hot' || scoring.tier === 'Warm') && lead.phone) {
+  // Place outbound call if phone exists
+  if (lead.phone) {
     try {
       leadStore[lead.phone] = { ...lead, scoring };
       await placeOutboundCall(lead.phone);
