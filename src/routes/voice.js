@@ -142,10 +142,10 @@ router.post('/schedule', async (req, res) => {
 
       try {
         const availability = await getAvailability(dateStr);
-        const slots = availability?.data?.slots?.[dateStr] || availability?.slots?.[dateStr] || [];
+        const slots = availability?.[dateStr] || availability?.data?.slots?.[dateStr] || availability?.slots?.[dateStr] || [];
 
         if (slots.length > 0) {
-          slotFound = slots[0].time || slots[0];
+          slotFound = slots[0].start || slots[0].time || slots[0];
           break;
         }
       } catch (err) {
