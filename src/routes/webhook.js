@@ -14,11 +14,18 @@ router.post('/typeform', async (req, res) => {
   const answers = payload.form_response?.answers || [];
   const hidden = payload.form_response?.hidden || {};
 
-  // Extract fields from Typeform answers by field title and answer type
-  const mapped = { name: '', phone: '', email: '', serviceNeeded: '', problem: '' };
+  // Build a map of field id → title from definition.fields
+  const fields = payload.form_response?.definition?.fields || [];
+  const titleMap = {};
+  for (const f of fields) {
+    titleMap[f.id] = (f.title || '').toLowerCase();
+  }
+
+  // Extract fields from Typeform answers using the title map
+  const mapped = { name: '', phone: '', email: '', serviceNeeded: '', problem: '', location: '', urgency: '' };
 
   for (const answer of answers) {
-    const title = (answer.field?.title || '').toLowerCase();
+    const title = titleMap[answer.field?.id] || '';
     const type = answer.type;
 
     if (title.includes('name') && type === 'text') {
@@ -29,8 +36,12 @@ router.post('/typeform', async (req, res) => {
       mapped.phone = answer.phone_number || '';
     } else if (title.includes('service')) {
       mapped.serviceNeeded = answer.text || answer.choice?.label || '';
-    } else if (title.includes('problem') || title.includes('describe')) {
+    } else if (title.includes('describe') || title.includes('issue') || title.includes('problem')) {
       mapped.problem = answer.text || '';
+    } else if (title.includes('located') || title.includes('location')) {
+      mapped.location = answer.text || '';
+    } else if (type === 'choice' && title.includes('when')) {
+      mapped.urgency = answer.choice?.label || '';
     }
   }
 
@@ -40,6 +51,8 @@ router.post('/typeform', async (req, res) => {
     email: hidden.email || mapped.email,
     serviceNeeded: hidden.serviceNeeded || hidden.service_needed || mapped.serviceNeeded,
     problem: hidden.problem || mapped.problem,
+    location: mapped.location,
+    urgency: mapped.urgency,
   };
 
   console.log(`New lead received: ${lead.name} (${lead.phone}) — problem: ${lead.problem}`);

@@ -12,13 +12,14 @@ const calApi = axios.create({
 
 async function getAvailability(date) {
   const response = await calApi.get('/slots', {
+    headers: { 'cal-api-version': '2024-09-04' },
     params: {
-      eventTypeId: config.calEventTypeId,
-      startDate: date,
-      endDate: date,
+      eventTypeId: Number(config.calEventTypeId),
+      start: date,
+      end: date,
     },
   });
-  return response.data;
+  return response.data.data;
 }
 
 async function bookAppointment(slot, lead) {
