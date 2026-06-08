@@ -9,6 +9,7 @@ const router = express.Router();
 const leadStore = {};
 
 router.post('/typeform', async (req, res) => {
+  console.log('RAW TYPEFORM:', JSON.stringify(req.body.form_response, null, 2));
   const payload = req.body;
   const answers = payload.form_response?.answers || [];
   const hidden = payload.form_response?.hidden || {};
