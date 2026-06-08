@@ -13,13 +13,13 @@ router.post('/typeform', async (req, res) => {
   const answers = payload.form_response?.answers || [];
   const hidden = payload.form_response?.hidden || {};
 
-  // Extract fields from Typeform answers or hidden fields
+  // Extract fields from Typeform answers by type and field title
   const lead = {
-    name: extractField(answers, 'name', hidden),
-    phone: extractField(answers, 'phone', hidden),
-    email: extractField(answers, 'email', hidden),
-    serviceNeeded: extractField(answers, 'serviceNeeded', hidden) || extractField(answers, 'service_needed', hidden),
-    problem: extractField(answers, 'problem', hidden),
+    name: hidden.name || findAnswer(answers, 'text', 'name') || '',
+    phone: hidden.phone || findAnswer(answers, 'phone_number', 'phone') || '',
+    email: hidden.email || findAnswer(answers, 'email', 'email') || '',
+    serviceNeeded: hidden.serviceNeeded || hidden.service_needed || findAnswer(answers, 'text', 'service') || '',
+    problem: hidden.problem || findAnswer(answers, 'text', 'problem') || '',
   };
 
   console.log(`New lead received: ${lead.name} (${lead.phone})`);
@@ -72,17 +72,16 @@ router.post('/typeform', async (req, res) => {
   res.status(200).json({ success: true, scoring });
 });
 
-function extractField(answers, fieldName, hidden) {
-  // Check hidden fields first
-  if (hidden[fieldName]) return hidden[fieldName];
-
-  // Search through answers by field ref or type
+function findAnswer(answers, type, titleHint) {
   for (const answer of answers) {
-    const ref = answer.field?.ref || '';
-    if (ref.toLowerCase().includes(fieldName.toLowerCase())) {
-      return answer.text || answer.email || answer.phone_number || answer.number || '';
+    const title = (answer.field?.title || '').toLowerCase();
+    if (answer.type === type && title.includes(titleHint.toLowerCase())) {
+      return answer[type] || '';
     }
   }
+  // Fallback: match by type alone if only one answer of that type exists
+  const byType = answers.filter(a => a.type === type);
+  if (byType.length === 1) return byType[0][type] || '';
   return '';
 }
 

@@ -22,7 +22,7 @@ const config = {
   // Google Sheets
   googleSheetId: process.env.GOOGLE_SHEET_ID,
   googleServiceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-  googlePrivateKey: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  googlePrivateKey: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/^["']|["']$/g, '').replace(/\\n/g, '\n'),
 
   // Typeform
   typeformSecret: process.env.TYPEFORM_SECRET,
