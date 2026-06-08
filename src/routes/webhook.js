@@ -13,16 +13,35 @@ router.post('/typeform', async (req, res) => {
   const answers = payload.form_response?.answers || [];
   const hidden = payload.form_response?.hidden || {};
 
-  // Extract fields from Typeform answers by type and field title
+  // Extract fields from Typeform answers by field title and answer type
+  const mapped = { name: '', phone: '', email: '', serviceNeeded: '', problem: '' };
+
+  for (const answer of answers) {
+    const title = (answer.field?.title || '').toLowerCase();
+    const type = answer.type;
+
+    if (title.includes('name') && type === 'text') {
+      mapped.name = answer.text || '';
+    } else if (type === 'email') {
+      mapped.email = answer.email || '';
+    } else if (type === 'phone_number') {
+      mapped.phone = answer.phone_number || '';
+    } else if (title.includes('service')) {
+      mapped.serviceNeeded = answer.text || answer.choice?.label || '';
+    } else if (title.includes('problem') || title.includes('describe')) {
+      mapped.problem = answer.text || '';
+    }
+  }
+
   const lead = {
-    name: hidden.name || findAnswer(answers, 'text', 'name') || '',
-    phone: hidden.phone || findAnswer(answers, 'phone_number', 'phone') || '',
-    email: hidden.email || findAnswer(answers, 'email', 'email') || '',
-    serviceNeeded: hidden.serviceNeeded || hidden.service_needed || findAnswer(answers, 'text', 'service') || '',
-    problem: hidden.problem || findAnswer(answers, 'text', 'problem') || '',
+    name: hidden.name || mapped.name,
+    phone: hidden.phone || mapped.phone,
+    email: hidden.email || mapped.email,
+    serviceNeeded: hidden.serviceNeeded || hidden.service_needed || mapped.serviceNeeded,
+    problem: hidden.problem || mapped.problem,
   };
 
-  console.log(`New lead received: ${lead.name} (${lead.phone})`);
+  console.log(`New lead received: ${lead.name} (${lead.phone}) — problem: ${lead.problem}`);
 
   let scoring = { score: 0, tier: 'Cold', urgency: 'Unknown', estJobValue: 0, keySignals: [], followUpNote: '' };
   let callMade = 'No';
@@ -72,18 +91,6 @@ router.post('/typeform', async (req, res) => {
   res.status(200).json({ success: true, scoring });
 });
 
-function findAnswer(answers, type, titleHint) {
-  for (const answer of answers) {
-    const title = (answer.field?.title || '').toLowerCase();
-    if (answer.type === type && title.includes(titleHint.toLowerCase())) {
-      return answer[type] || '';
-    }
-  }
-  // Fallback: match by type alone if only one answer of that type exists
-  const byType = answers.filter(a => a.type === type);
-  if (byType.length === 1) return byType[0][type] || '';
-  return '';
-}
 
 module.exports = router;
 module.exports.leadStore = leadStore;
